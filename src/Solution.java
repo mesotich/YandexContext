@@ -47,6 +47,7 @@ public class Solution {
 
     private static int multithreadingExecute(int threads, String[] strings) throws ExecutionException, InterruptedException {
         List<Future<Integer>> futures = new ArrayList<>();
+
         int len = strings.length;
         int start = 0;
         int end = len / threads;
