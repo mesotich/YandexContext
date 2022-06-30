@@ -86,10 +86,12 @@ public class Solution {
 
     private static void printResult(BufferedWriter bw, boolean isEmptyResult, int changeRow, int tickets) throws IOException {
         if (isEmptyResult) {
-            bw.write("Cannot fulfill passengers requirements\n");
+            bw.write("Cannot fulfill passengers requirements"
+                    + "\n");
             return;
         }
-        bw.write("Passengers can take seats:" + "\n");
+        bw.write("Passengers can take seats:"
+                + generateSeats(changeRow, tickets) + "\n");
         for (int i = 0; i < rows.size(); i++) {
             int row = rows.get(i);
             String line = convertRowIntToLine(row);
@@ -147,6 +149,20 @@ public class Solution {
         for (int i = 0; i < binaryString.length(); i++) {
             if (binaryString.charAt(i) == '1')
                 sb.replace(i + del, i + del + 1, "X");
+        }
+        return sb.toString();
+    }
+
+    private static String generateSeats(int row, int tickets) {
+        String binaryString = Integer.toBinaryString(tickets);
+        StringBuilder sb = new StringBuilder();
+        int del = 7 - binaryString.length();
+        int corr = 0;
+        for (int i = 0; i < binaryString.length(); i++) {
+            if (i + del >= 3)
+                corr = 1;
+            if (binaryString.charAt(i) == '1')
+                sb.append(" ").append(row + 1).append((char) (65 + del + i - corr));
         }
         return sb.toString();
     }
