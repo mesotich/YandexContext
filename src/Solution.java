@@ -8,269 +8,148 @@ import java.util.List;
 
 public class Solution {
 
-    private static final String FULL_FILL = "Cannot fulfill passengers requirements";
-    private static final String CAN_TAKE = "Passengers can take seats: ";
+    private static final List<Integer> rows = new ArrayList<>();
+    private static final int leftMask = Integer.parseInt("1110000", 2);
+    private static final int rightMask = Integer.parseInt("0000111", 2);
+    private static final int windowMask = Integer.parseInt("1000001", 2);
+    private static final int aisleMask = Integer.parseInt("0010100", 2);
+    private static final int middleLeftSeats = Integer.parseInt("0100000", 2);
+    private static final int middleRightSeats = Integer.parseInt("0000010", 2);
     private static int totalFreeSeats = 0;
-    private static final PlaneInformation leftHole = new PlaneInformation();
-    private static final PlaneInformation rightHole = new PlaneInformation();
+    private static int groupsLeft = 0;
 
     public static void main(String[] args) {
         try (BufferedReader br = Files.newBufferedReader(Paths.get("input.txt"));
              BufferedWriter bw = Files.newBufferedWriter(Paths.get("output.txt"))) {
-            int rowsQuantity = Integer.parseInt(br.readLine());
-            for (int i = 0; i < rowsQuantity; i++) {
-                String[] rows = br.readLine().split("_");
-                Row leftRow = Row.createRow(rows[0], Side.LEFT);
-                Row rightRow = Row.createRow(rows[1], Side.RIGHT);
-                leftHole.addRow(leftRow);
-                rightHole.addRow(rightRow);
+            int rowQuantity = Integer.parseInt(br.readLine());
+            for (int i = 0; i < rowQuantity; i++) {
+                String line = br.readLine();
+                int row = convertRowLineToInt(line);
+                totalFreeSeats += getFreeSeats(row);
+                rows.add(row);
             }
             int passengersGroupQuantity = Integer.parseInt(br.readLine());
+            groupsLeft = passengersGroupQuantity;
             for (int i = 0; i < passengersGroupQuantity; i++) {
-                totalFreeSeats = leftHole.getPlaneInformationFreeSeats() + rightHole.getPlaneInformationFreeSeats();
                 if (totalFreeSeats == 0)
                     break;
-                String[] stringGroup = br.readLine().split(" ");
-                GroupTicket group = new GroupTicket(Integer.parseInt(stringGroup[0]), Side.valueOf(stringGroup[1].toUpperCase()), Preference.valueOf(stringGroup[2].toUpperCase()));
-                int rowForSelling = ticketsForSelling(group);
-                if (rowForSelling != -1) {
-                    Side side = group.getSide();
-                    PlaneInformation planeInformation = side.equals(Side.LEFT) ? leftHole : rightHole;
-                    planeInformation.sellTickets(group, rowForSelling);
-                    printResult(rowForSelling, side, bw);
+                String[] group = br.readLine().split(" ");
+                int tickets = -1;
+                for (int j = 0; j < rows.size(); j++) {
+                    int rowCode = rows.get(j);
+                    int passengers = Integer.parseInt(group[0]);
+                    int groupCode = convertGroupToInt(passengers, group[1], group[2]);
+                    tickets = findTickets(rowCode, groupCode);
+                    if (tickets != -1) {
+                        int newRow = sellTickets(rowCode, groupCode);
+                        rows.set(j, newRow);
+                        totalFreeSeats -= passengers;
+                        printResult(bw, false, j, tickets);
+                        break;
+                    }
                 }
+                if (tickets == -1) {
+                    printResult(bw, true, -1, -1);
+                }
+                groupsLeft--;
+            }
+            for (int i = 0; i < groupsLeft; i++) {
+                printResult(bw, true, -1, -1);
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private static void printResult(int newRow, GroupTicket group, BufferedWriter bw) throws IOException {
-        StringBuilder sb = new StringBuilder(CAN_TAKE);
-        sb.append("\n");
-        for (int i = 0; i < leftHole.getRows().size(); i++) {
-            String leftPart = leftHole.getRows().get(i).toString();
-            String rightPart = rightHole.getRows().get(i).toString();
-            if (i + 1 == newRow) {
-                if (side.equals(Side.LEFT)) {
-                    leftPart = leftPart.replace('#', 'X');
-                } else {
-                    rightPart = rightPart.replace('#', 'X');
-                }
-            }
-            sb.append(leftPart)
-                    .append("_")
-                    .append(rightPart);
-            sb.append("\n");
+    private static int getFreeSeats(int rowCode) {
+        if (rowCode == 0)
+            return 0;
+        int count = 0;
+        while (rowCode != 0) {
+            count++;
+            rowCode = rowCode & rowCode - 1;
         }
-        bw.write(sb.toString());
+        return count;
     }
 
-    private static GroupTicket ticketsForSelling(GroupTicket group) {
-        GroupTicket ticket = null;
-        PlaneInformation planeInformation = group.getSide().equals(Side.LEFT) ? leftHole : rightHole;
-        int passengers = group.getPassengers();
-        if (planeInformation.getPlaneInformationFreeSeats() < passengers)
-            return null;
-        Preference preference = group.getPreference();
-        if ((preference.equals(Preference.WINDOW) && planeInformation.getWindowsFreeSeats() == 0) ||
-                preference.equals(Preference.AISLE) && planeInformation.getAisleFreeSeats() == 0)
-            return null;
-        List<Row> rows = planeInformation.getRows();
+    private static int convertGroupToInt(int passengers, String side, String preference) {
+        boolean isLeft = side.equals("left");
+        int groupCode = isLeft ? leftMask : rightMask;
+        if (passengers == 3)
+            return groupCode;
+        int intPreference = preference.equals("window") ? windowMask : aisleMask;
+        groupCode = groupCode & intPreference;
+        if (passengers == 1)
+            return groupCode;
+        return isLeft ? (groupCode | middleLeftSeats) : (groupCode | middleRightSeats);
+    }
+
+    private static void printResult(BufferedWriter bw, boolean isEmptyResult, int changeRow, int tickets) throws IOException {
+        if (isEmptyResult) {
+            bw.write("Cannot fulfill passengers requirements\n");
+            return;
+        }
+        bw.write("Passengers can take seats:" + "\n");
         for (int i = 0; i < rows.size(); i++) {
-            Row row = rows.get(i);
-            int rowFreeSeats = row.getFreeSeats();
-            boolean rowIsFreeWindow = row.isFreeWindow();
-            boolean rowIsFreeAisle = row.isFreeAisle();
-            if (passengers <= rowFreeSeats &&
-                    ((preference.equals(Preference.WINDOW) && rowIsFreeWindow) ||
-                            (preference.equals(Preference.AISLE) && rowIsFreeAisle)) &&
-                    !(passengers == 2 && rowFreeSeats == 2 && rowIsFreeWindow && rowIsFreeAisle)) {
-                return i + 1;
+            int row = rows.get(i);
+            String line = convertRowIntToLine(row);
+            if (tickets != -1 && changeRow == i) {
+                line = replaceNew(new StringBuilder(line), tickets);
             }
-        }
-        return null;
-    }
-
-    private static class GroupTicket {
-
-        private Side side;
-        private int row;
-        private String places;
-
-        public GroupTicket(Side side, int row, String places) {
-
-            this.side = side;
-            this.row = row;
-            this.places = places;
+            bw.write(line + "\n");
         }
     }
 
-    private static class PlaneInformation {
-
-        private List<Row> rows = new ArrayList<>();
-        private int planeInformationFreeSeats = 0;
-        private int windowsFreeSeats = 0;
-        private int aisleFreeSeats = 0;
-
-        public void addRow(Row row) {
-            planeInformationFreeSeats += row.freeSeats;
-            if (row.isFreeWindow())
-                windowsFreeSeats++;
-            if (row.isFreeAisle())
-                aisleFreeSeats++;
-            rows.add(row);
-        }
-
-        public void sellTickets(GroupTicket group, int rowNumber) {
-            Row row = rows.get(rowNumber - 1);
-            int passengers = group.getPassengers();
-            Preference preference = group.getPreference();
-            row.setFreeSeats(row.getFreeSeats() - passengers);
-            planeInformationFreeSeats -= passengers;
-            if (passengers == 3) {
-                row.setFreeWindow(false);
-                windowsFreeSeats--;
-                row.setFreeAisle(false);
-                aisleFreeSeats--;
-            } else {
-                if (preference.equals(Preference.WINDOW)) {
-                    row.setFreeWindow(false);
-                    windowsFreeSeats--;
-                } else {
-                    row.setFreeAisle(false);
-                    aisleFreeSeats--;
-                }
-            }
-        }
-
-        public int getPlaneInformationFreeSeats() {
-            return planeInformationFreeSeats;
-        }
-
-        public int getWindowsFreeSeats() {
-            return windowsFreeSeats;
-        }
-
-        public int getAisleFreeSeats() {
-            return aisleFreeSeats;
-        }
-
-        public List<Row> getRows() {
-            return rows;
-        }
+    private static int sellTickets(int rowCode, int groupCode) {
+        return rowCode ^ groupCode;
     }
 
-    private static class Row {
-
-        private int freeSeats;
-        private boolean freeWindow;
-        private boolean freeAisle;
-        private final Side side;
-
-        public static Row createRow(String row, Side side) {
-            char ch;
-            int freesSeats = 0;
-            boolean freeWindow = false;
-            boolean freeAisle = false;
-            boolean first = false;
-            boolean third = false;
-            for (int i = 0; i < 3; i++) {
-                ch = row.charAt(i);
-                if (ch == '.') {
-                    switch (i) {
-                        case 0:
-                            first = true;
-                            break;
-                        case 1:
-                            break;
-                        case 2:
-                            third = true;
-                            break;
-                    }
-                    freesSeats++;
-                }
-                if (side.equals(Side.LEFT)) {
-                    freeWindow = first;
-                    freeAisle = third;
-                } else {
-                    freeWindow = third;
-                    freeAisle = first;
-                }
-            }
-            totalFreeSeats += freesSeats;
-            return new Row(freesSeats, freeWindow, freeAisle, side);
-        }
-
-        private Row(int freeSeats, boolean freeWindow, boolean freeAisle, Side side) {
-            this.freeSeats = freeSeats;
-            this.freeWindow = freeWindow;
-            this.freeAisle = freeAisle;
-            this.side = side;
-        }
-
-        public int getFreeSeats() {
-            return freeSeats;
-        }
-
-        public void setFreeSeats(int freeSeats) {
-            this.freeSeats = freeSeats;
-        }
-
-        public boolean isFreeWindow() {
-            return freeWindow;
-        }
-
-        public void setFreeWindow(boolean freeWindow) {
-            this.freeWindow = freeWindow;
-        }
-
-        public boolean isFreeAisle() {
-            return freeAisle;
-        }
-
-        public void setFreeAisle(boolean freeAisle) {
-            this.freeAisle = freeAisle;
-        }
-
-        public Side getSide() {
-            return side;
-        }
-
-        private void swapSides(Row row) {
-            boolean buffer;
-            buffer = row.freeWindow;
-            row.freeWindow = row.freeAisle;
-            row.freeAisle = buffer;
-        }
-
-        @Override
-        public String toString() {
-            if (side.equals(Side.RIGHT))
-                swapSides(this);
-            int occupiedPlace = 0;
-            StringBuilder sb = new StringBuilder("...");
-            if (!freeWindow) {
-                sb.replace(0, 1, "#");
-                occupiedPlace++;
-            }
-            if (!freeAisle) {
-                sb.replace(2, sb.length(), "#");
-                occupiedPlace++;
-            }
-            if (3 - occupiedPlace > freeSeats)
-                sb.replace(1, 2, "#");
-            if (side.equals(Side.RIGHT))
-                swapSides(this);
-            return sb.toString();
-        }
+    private static int findTickets(int rowCode, int groupCode) {
+        if (rowCode == 0)
+            return -1;
+        if ((rowCode & groupCode) == groupCode)
+            return groupCode;
+        return -1;
     }
 
-    public enum Side {
-        LEFT, RIGHT
+    private static int convertRowLineToInt(String line) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < line.length(); i++) {
+            if (line.charAt(i) == '.')
+                sb.append('1');
+            else sb.append('0');
+        }
+        return Integer.parseInt(sb.toString(), 2);
     }
 
-    public enum Preference {
-        WINDOW, AISLE
+    private static String convertRowIntToLine(int row) {
+        String binaryRow = Integer.toBinaryString(row);
+        StringBuilder sb = new StringBuilder(binaryRow);
+        StringBuilder result = new StringBuilder();
+        int len = sb.length();
+        if (len < 7) {
+            for (int i = 0; i < 7 - len; i++) {
+                sb.insert(i, 0);
+            }
+        }
+        len = sb.length();
+        char ch;
+        for (int i = 0; i < len; i++) {
+            ch = i == 3 ? '_' : sb.charAt(i) == '1' ? '.' : '#';
+            result.append(ch);
+        }
+        return result.toString();
+    }
+
+    private static String replaceNew(StringBuilder sb, int tickets) {
+        String binaryString = Integer.toBinaryString(tickets);
+        int del = sb.length() - binaryString.length();
+        for (int i = 0; i < binaryString.length(); i++) {
+            if (binaryString.charAt(i) == '1')
+                sb.replace(i + del, i + del + 1, "X");
+        }
+        return sb.toString();
     }
 }
+
+

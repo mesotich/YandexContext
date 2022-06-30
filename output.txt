@@ -1,25 +1,27 @@
-Passengers can take seats: 
+Passengers can take seats:
 .XX_.#.
 .##_...
 .#._.##
 ..._...
-Passengers can take seats: 
+Passengers can take seats:
 .##_.#.
 .##_XXX
 .#._.##
 ..._...
-Passengers can take seats: 
+Passengers can take seats:
 .##_.#.
 .##_###
 .#._.##
 XX._...
-Passengers can take seats: 
-.##_.XX
+Cannot fulfill passengers requirements
+Passengers can take seats:
+.##_.#X
 .##_###
 .#._.##
 ##._...
-Passengers can take seats: 
+Passengers can take seats:
 .##_.##
 .##_###
 .#._.##
 ##._.XX
+Cannot fulfill passengers requirements
