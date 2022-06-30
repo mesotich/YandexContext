@@ -34,11 +34,20 @@ public class Solution {
                 if (totalFreeSeats == 0)
                     break;
                 String[] group = br.readLine().split(" ");
+                int passengers = Integer.parseInt(group[0]);
+                if (passengers > totalFreeSeats) {
+                    groupsLeft--;
+                    printResult(bw, true, -1, -1);
+                    continue;
+                }
+                int groupCode = convertGroupToInt(passengers, group[1], group[2]);
                 int tickets = -1;
                 for (int j = 0; j < rows.size(); j++) {
                     int rowCode = rows.get(j);
-                    int passengers = Integer.parseInt(group[0]);
-                    int groupCode = convertGroupToInt(passengers, group[1], group[2]);
+                    if (rowCode == 0)
+                        continue;
+                    if (getFreeSeats(rowCode) == 0)
+                        continue;
                     tickets = findTickets(rowCode, groupCode);
                     if (tickets != -1) {
                         int newRow = sellTickets(rowCode, groupCode);
@@ -62,8 +71,6 @@ public class Solution {
     }
 
     private static int getFreeSeats(int rowCode) {
-        if (rowCode == 0)
-            return 0;
         int count = 0;
         while (rowCode != 0) {
             count++;
@@ -107,8 +114,6 @@ public class Solution {
     }
 
     private static int findTickets(int rowCode, int groupCode) {
-        if (rowCode == 0)
-            return -1;
         if ((rowCode & groupCode) == groupCode)
             return groupCode;
         return -1;
