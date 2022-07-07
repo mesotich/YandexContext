@@ -36,10 +36,10 @@ public class Solution {
     private static void execute() {
         while (!photos.empty()) {
             int[] photo = photos.pop();
-            int firstSquare = getSquare(photo[2], photo[3]);
-            int secondSquare = getSquare(photo[0], photo[3]);
-            int thirdSquare = getSquare(photo[0], photo[1]);
-            int fourthSquare = getSquare(photo[2], photo[1]);
+            long firstSquare = getSquare(photo[2], photo[3]);
+            long secondSquare = getSquare(photo[0], photo[3]);
+            long thirdSquare = getSquare(photo[0], photo[1]);
+            long fourthSquare = getSquare(photo[2], photo[1]);
             sb.insert(0, (firstSquare + secondSquare + thirdSquare + fourthSquare) + "\n");
         }
         sb.delete(sb.length() - 1, sb.length());
@@ -53,26 +53,31 @@ public class Solution {
         }
     }
 
-    private static int getSquare(int x, int y) {
+    private static long getSquare(int x, int y) {
         if (x == 0 || y == 0)
             return 0;
-        int sum = 0;
+        long sum = 0;
         int delta;
         TreeMap<Integer, Integer> columns = x > 0 ? y > 0 ? first : fourth : y > 0 ? second : third;
         x = Math.abs(x);
         y = Math.abs(y);
+        int x0 = x;
         columns.put(0, 0);
         Optional<Integer> lowerKey = Optional.ofNullable(columns.lowerKey(x));
-        delta = y - columns.getOrDefault(x, lowerKey.orElse(0));
+        delta = y - columns.getOrDefault(x, columns.get(lowerKey.orElse(0)));
         if (delta <= 0)
             return 0;
         columns.put(x, y);
         Optional<Integer> higherKey;
+        int forRemove;
         while (delta > 0 && x != 0) {
             higherKey = Optional.ofNullable(columns.higherKey(x));
-            sum += delta * (x-higherKey.orElse(0));
+            sum += (long) delta * (x - higherKey.orElse(0));
             delta = y - columns.get(higherKey.orElse(0));
+            forRemove = x;
             x = higherKey.orElse(0);
+            if (forRemove != x0)
+                columns.remove(forRemove);
         }
         return sum;
     }
