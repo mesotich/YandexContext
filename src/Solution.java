@@ -12,7 +12,7 @@ public class Solution {
     private static final TreeMap<Integer, Integer> second = new TreeMap<>(Comparator.reverseOrder());
     private static final TreeMap<Integer, Integer> third = new TreeMap<>(Comparator.reverseOrder());
     private static final TreeMap<Integer, Integer> fourth = new TreeMap<>(Comparator.reverseOrder());
-    private static final StringBuilder sb = new StringBuilder();
+    private static final List<Long> results = new ArrayList<>();
 
     public static void main(String[] args) {
         loadPhotos();
@@ -34,20 +34,29 @@ public class Solution {
     }
 
     private static void execute() {
+        first.put(0, 0);
+        second.put(0, 0);
+        third.put(0, 0);
+        fourth.put(0, 0);
         while (!photos.empty()) {
             int[] photo = photos.pop();
             long firstSquare = getSquare(photo[2], photo[3]);
             long secondSquare = getSquare(photo[0], photo[3]);
             long thirdSquare = getSquare(photo[0], photo[1]);
             long fourthSquare = getSquare(photo[2], photo[1]);
-            sb.insert(0, (firstSquare + secondSquare + thirdSquare + fourthSquare) + "\n");
+            long sum = firstSquare + secondSquare + thirdSquare + fourthSquare;
+            results.add(sum);
         }
-        sb.delete(sb.length() - 1, sb.length());
     }
 
     private static void printResult() {
+        String s;
+        Collections.reverse(results);
         try (BufferedWriter bw = Files.newBufferedWriter(Paths.get("output.txt"))) {
-            bw.write(sb.toString());
+            for (int i = 0; i < results.size(); i++) {
+                s = i != results.size() - 1 ? "\n" : "";
+                bw.write(results.get(i) + s);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -61,12 +70,10 @@ public class Solution {
         TreeMap<Integer, Integer> columns = x > 0 ? y > 0 ? first : fourth : y > 0 ? second : third;
         x = Math.abs(x);
         y = Math.abs(y);
-        int x0 = x;
-        columns.put(0, 0);
-        Optional<Integer> lowerKey = Optional.ofNullable(columns.lowerKey(x));
-        delta = y - columns.getOrDefault(x, columns.get(lowerKey.orElse(0)));
+        delta = y - columns.getOrDefault(x, columns.get(Optional.ofNullable(columns.lowerKey(x)).orElse(0)));
         if (delta <= 0)
             return 0;
+        int x0 = x;
         columns.put(x, y);
         Optional<Integer> higherKey;
         int forRemove;
