@@ -1,51 +1,45 @@
-import java.util.Scanner;
-
 public class Solution {
 
-    private static final Scanner scanner = new Scanner(System.in);
-
     public static void main(String[] args) {
-        int tanksQuantity = getValueFromConsole(100_000);
-        int[] volumes = new int[tanksQuantity];
-        for (int i = 0; i < volumes.length; i++) {
-            volumes[i] = getValueFromConsole(1_000_000_000);
-        }
-        System.out.println(calculateOperationQuantity(volumes));
     }
 
-    private static int calculateOperationQuantity(int[] volumes) {
-        if (volumes.length == 1)
-            return 0;
-        int minValue = Integer.MAX_VALUE;
-        int maxValue = 0;
-        for (int i = 0; i < volumes.length; i++) {
-            if (i + 1 >= volumes.length)
-                return maxValue - minValue;
-            if (volumes[i + 1] < volumes[i])
-                return -1;
-            if (volumes[i] < minValue)
-                minValue = volumes[i];
-            if (volumes[i + 1] > maxValue)
-                maxValue = volumes[i + 1];
+    private static Operation joinChar(char first, char second) {
+        if ((first == '=' || second == '=')
+                || (first == '<' && second == '<')
+                || (first == '>' && second == '>')) {
+            if (first == '!' || second == '^' || first == '^' || second == '!')
+                return Operation.ERROR;
+            else return Operation.EQUALLY;
         }
-        return maxValue - minValue;
+        if (first == '!' || second == '!') {
+            if (first == '>' || second == '>' || (first == '!' && second == '!'))
+                return Operation.ERROR;
+            else if (second == '<')
+                return Operation.MORE;
+            else if (first == '<')
+                return Operation.LESS;
+        }
+        if (first == '^' || second == '^') {
+            if (first == '<' || second == '<' || (first == '^' && second == '^'))
+                return Operation.ERROR;
+            else if (second=='>')
+                return Operation.LESS;
+            else if(first=='>')
+                return Operation.MORE;
+        }
+        if(first=='<'&&second=='>')
+            return Operation.LESS_OR_EQUALLY;
+        if (first=='>'&&second=='<')
+            return Operation.MORE_OR_EQUALLY;
     }
 
-    private static int getValueFromConsole(int max) {
-        int value;
-        while (true) {
-            if (scanner.hasNextInt()) {
-                value = scanner.nextInt();
-                if (value < 1 || value > max) {
-                    System.out.println("Введите число от 1 до " + max);
-                    scanner.next();
-                } else {
-                    return value;
-                }
-            } else {
-                System.out.println("Вы ввели не число");
-                scanner.next();
-            }
-        }
+    private enum Operation {
+        LESS,
+        LESS_OR_EQUALLY,
+        EQUALLY,
+        MORE_OR_EQUALLY,
+        MORE,
+        UNKNOWN,
+        ERROR
     }
 }
